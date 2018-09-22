@@ -57,7 +57,7 @@ epochNet.t2 <- estimateNetwork(df[,t2name],default = "EBICglasso")
 plot(epochNet.t2,layout = 'spring',labels = TRUE)
 centralityPlot(epochNet.t2)
 
-# clean the name varialbe:
+# clean the name variable, may need new code:
 tmp <- df.raw$name %>%
         as.character()
 tmp2 <- setNames(data.frame(matrix(ncol = 3, nrow = length(tmp) )), c("name", "school1",'unknown'))        
