@@ -1,7 +1,14 @@
 
-########################################################################
-################## R code for Network of Happiness #####################
+##############################################################################
+################## R code for Network of Positive Tratis #####################
+##############################################################################
 #
+# Author   Date(Y-M-D)  Log of change
+# =======  ===========  ==============
+# hcp      18.10.05     revised code based on Bellet et al 2018.
+#
+#
+# 
 ##### Part 1: read the .sav file ##########
 
 # remove previous variables in memory
@@ -16,6 +23,11 @@ library(haven)
 library('bootnet')
 library('qgraph')
 
+if (!require(networktools)) {install.packages("networktools",repos = "http://cran.us.r-project.org"); require(networktools)}
+library("networktools")
+
+source('Bellet_Supplemental_Script_S2.R')
+
 #spss2date <- function(x) as.Date(x/86400, origin = "1582-10-14")
 #df.raw <- foreign::read.spss("EPOCHcombinedB.sav", reencode='utf-8',to.data.frame=TRUE)
 #df.raw$name <- as.character(df.raw$name)
@@ -24,9 +36,11 @@ library('qgraph')
 #summary(df.raw)
 
 # load the reduced dataset
-df <- haven::read_spss("EPOCHreducedForR2.sav")
-colnames(df)
-df <- df[,1:50] # remove the summary score
+df.s <- haven::read_spss("EPOCHreducedForR2.sav")  #  the short version data
+df.l <- haven::read_spss("EPOCHcombinedB.sav")     #  the long version data
+
+###### estimate network model for short version ####
+df.s <- df.s[,1:50]    # remove the summary score
 
 # the colnames for test at T1
 t1name <- c("E1.1", "P1.1", "O1.1", "C1.1", "H1.1",
@@ -41,15 +55,46 @@ t2name <- c("E1.2", "P1.2", "O1.2", "C1.2", "H1.2",
             "E4.2", "P4.2", "O4.2", "C4.2", "H4.2")
 
 # reliability of two test
-alpha.t1 <- psych::alpha(df[,t1name]) 
-print(alpha.t1$total)
+alpha.t1 <- psych::alpha(df.s[,t1name]) 
+print(alpha.t1$total)  # 0.936
 
-alpha.t2 <- psych::alpha(df[,t2name]) 
-print(alpha.t2$total)
+alpha.t2 <- psych::alpha(df.s[,t2name]) 
+print(alpha.t2$total)  # 0.935
 
 # estimate the network 
-epochNet.t1 <- df[,t1name] %>%
+cor.epochNet.t1 <- invisible(qgraph::cor_auto(df.s[,t1name]))
+glasso_epochNet.t1 <- qgraph::EBICglasso(cor.epochNet.t1, n=dim(df.s[,t1name])[1], gamma=0.5)
+
+epochNet.t1 <- qgraph::qgraph(glasso_epochNet.t1, layout="spring", labels=t1name, vsize=9,
+                label.cex=c(rep(.7,10),.6,.7,.6),
+                label.font=c(rep(1,10),2,1,2),
+                label.color=c(rep(1, 10),"blue", 1,"blue"),
+                label.scale=F, DoNotPlot=F)
+
+pdf("epochNet.t1.pdf", width = 3.8, height = 4)
+epochbw <- makeBW(epochNet.t1)
+dev.off()
+
+# expected influence
+EI_epoch.t1 <- networktools::expectedInf(glasso_epochNet.t1)
+pdf("epoch.t1_EI.pdf", width = 5)
+plot(EI_epoch.t1$step1, order="value", zscore=F, yaxt = "n")
+dev.off()
+
+####Edge Weight and EI stability
+set.seed(123)
+net <- bootnet::estimateNetwork(df.s[,t1name], default="EBICglasso")
+
+net_boot <- bootnet_flex(net, statistics=c("edge", "expectedInf"), nBoots=1000, type="case", caseN = 50)
+
+CorStabEpochT1 <- corStability(net_boot, statistics=c("edge", "expectedInf")) # correlation stability of the bootnet
+
+
+
+
+epochNet.t1 <- df.s[,t1name] %>%
       estimateNetwork(default = "EBICglasso")
+
 plot(epochNet.t1,layout = 'spring',labels = TRUE)
 centralityPlot(epochNet.t1)
 
