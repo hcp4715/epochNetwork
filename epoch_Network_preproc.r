@@ -43,16 +43,24 @@ df.l <- haven::read_spss("EPOCHcombinedB.sav")     #  the long version data
 df.s <- df.s[,1:50]    # remove the summary score
 
 # the colnames for test at T1
-t1name <- c("E1.1", "P1.1", "O1.1", "C1.1", "H1.1",
-            "E2.1", "P2.1", "O2.1", "C2.1", "H2.1",
-            "E3.1", "P3.1", "O3.1", "C3.1", "H3.1",
-            "E4.1", "P4.1", "O4.1", "C4.1", "H4.1")
+t1name <- c("E1.1", "E2.1", "E3.1", "E4.1",
+            "P1.1", "P2.1", "P3.1", "P4.1", 
+            "O1.1", "O2.1", "O3.1", "O4.1",
+            "C1.1", "C2.1", "C3.1", "C4.1",
+            "H1.1", "H2.1", "H3.1", "H4.1")
 
 # the colnames for test at T2
-t2name <- c("E1.2", "P1.2", "O1.2", "C1.2", "H1.2",
-            "E2.2", "P2.2", "O2.2", "C2.2", "H2.2",
-            "E3.2", "P3.2", "O3.2", "C3.2", "H3.2",
-            "E4.2", "P4.2", "O4.2", "C4.2", "H4.2")
+t2name <- c("E1.2", "E2.2", "E3.2", "E4.2",
+            "P1.2", "P2.2", "P3.2", "P4.2", 
+            "O1.2", "O2.2", "O3.2", "O4.2",
+            "C1.2", "C2.2", "C3.2", "C4.2",
+            "H1.2", "H2.2", "H3.2", "H4.2")
+
+epochName <- c("E-forgetTime", "E-focus",   "E-flow",      "E-learn",
+               "P-beginEnd",   "P-finish",  "P-plan",      "P-hardwork",
+               "O-futur",      "O-best",    "O-goodthing", "O-solution",
+               "C-share",      "C-support", "C-caring",    "C-friends",
+               "H-happy",      "H-fun",     "H-life",      "H-joy")
 
 # reliability of two test
 alpha.t1 <- psych::alpha(df.s[,t1name]) 
@@ -61,17 +69,32 @@ print(alpha.t1$total)  # 0.936
 alpha.t2 <- psych::alpha(df.s[,t2name]) 
 print(alpha.t2$total)  # 0.935
 
-# estimate the network 
+# estimate the network for Time point 1
 cor.epochNet.t1 <- invisible(qgraph::cor_auto(df.s[,t1name]))
 glasso_epochNet.t1 <- qgraph::EBICglasso(cor.epochNet.t1, n=dim(df.s[,t1name])[1], gamma=0.5)
 
-epochNet.t1 <- qgraph::qgraph(glasso_epochNet.t1, layout="spring", labels=t1name, vsize=9,
-                label.cex=c(rep(.7,10),.6,.7,.6),
-                label.font=c(rep(1,10),2,1,2),
-                label.color=c(rep(1, 10),"blue", 1,"blue"),
-                label.scale=F, DoNotPlot=F)
+epochNet.t1 <- qgraph::qgraph(glasso_epochNet.t1, layout="spring", labels=epochName, vsize=9,
+                label.cex = c(rep(.7,10),.6,.7,.6),
+                label.font = c(rep(1,20)),
+                label.color = c(rep('blue', 4),rep('red',4),rep(1,4),rep('#993300',4),rep("#009999",4)),
+                label.scale = F, DoNotPlot=F)
 
 pdf("epochNet.t1.pdf", width = 3.8, height = 4)
+epochbw <- makeBW(epochNet.t1)
+dev.off()
+
+
+# estimate the network for Time point 2
+cor.epochNet.t2 <- invisible(qgraph::cor_auto(df.s[,t2name]))
+glasso_epochNet.t2 <- qgraph::EBICglasso(cor.epochNet.t2, n=dim(df.s[,t2name])[1], gamma=0.5)
+
+epochNet.t2 <- qgraph::qgraph(glasso_epochNet.t2, layout="spring", labels=epochName, vsize=9,
+                               label.cex = c(rep(.7,10),.6,.7,.6),
+                              label.font = c(rep(1,20)),
+                              label.color = c(rep('blue', 4),rep('red',4),rep(1,4),rep('#993300',4),rep("#009999",4)),
+                              label.scale = F, DoNotPlot=F)
+
+pdf("epochNet.t2.pdf", width = 3.8, height = 4)
 epochbw <- makeBW(epochNet.t1)
 dev.off()
 
