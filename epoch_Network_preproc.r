@@ -12,6 +12,7 @@
 ##### Part 1: read the .sav file ##########
 
 # remove previous variables in memory
+Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jre7') # for 64-bit version
 Sys.setlocale("LC_ALL", "English")  # set local encoding to English
 Sys.setenv(LANG = "en") # set the feedback language to English
 
@@ -25,6 +26,8 @@ library('qgraph')
 
 if (!require(networktools)) {install.packages("networktools",repos = "http://cran.us.r-project.org"); require(networktools)}
 library("networktools")
+if (!require(xlsx)) {install.packages("xlsx",repos = "http://cran.us.r-project.org"); require(networktools)}
+library("xlsx")
 
 source('Bellet_Supplemental_Script_S2.R')
 
@@ -83,7 +86,6 @@ pdf("epochNet.t1.pdf", width = 3.8, height = 4)
 epochbw <- makeBW(epochNet.t1)
 dev.off()
 
-
 # estimate the network for Time point 2
 cor.epochNet.t2 <- invisible(qgraph::cor_auto(df.s[,t2name]))
 glasso_epochNet.t2 <- qgraph::EBICglasso(cor.epochNet.t2, n=dim(df.s[,t2name])[1], gamma=0.5)
@@ -113,8 +115,6 @@ net_boot <- bootnet_flex(net, statistics=c("edge", "expectedInf"), nBoots=1000, 
 CorStabEpochT1 <- corStability(net_boot, statistics=c("edge", "expectedInf")) # correlation stability of the bootnet
 
 
-
-
 epochNet.t1 <- df.s[,t1name] %>%
       estimateNetwork(default = "EBICglasso")
 
@@ -130,27 +130,27 @@ tmp <- df.raw$name %>%
         as.character()
 tmp2 <- setNames(data.frame(matrix(ncol = 3, nrow = length(tmp) )), c("name", "school1",'unknown'))        
 
-for (ii in 1:nrow(tmp2)){
-        #a <- wk[tmp[ii]]
-        new <- c()
-        a_tmp <- strsplit(tmp[ii],' ')[[1]]
-        for (jj in 1:length(a_tmp)){
-                if(stringr::str_length(a_tmp[jj])>0){
-                        new = c(new,a_tmp[jj])
-                }
-        }
-        if(length(new) == 0){
-                tmp2$name[ii] <- "NA"
-                tmp2$school1[ii] <- NA
-        } else if (length(new)>0 & (length(new)<=2)){
-                tmp2$name[ii] <- new[1]
-                tmp2$school1[ii] <- new[2]
-        } else if (length(new) == 3){
-                tmp2$name[ii] <- new[1]
-                tmp2$school1[ii] <- new[2]
-                tmp2$unknown[ii] <- new[3]
-        }
-        
+for (ii in 1:nrow(tmp2)) {
+      #a <- wk[tmp[ii]]
+      new <- c()
+      a_tmp <- strsplit(tmp[ii], ' ')[[1]]
+      for (jj in 1:length(a_tmp)) {
+            if (stringr::str_length(a_tmp[jj]) > 0) {
+                  new = c(new, a_tmp[jj])
+            }
+      }
+      if (length(new) == 0) {
+            tmp2$name[ii] <- "NA"
+            tmp2$school1[ii] <- NA
+      } else if (length(new) > 0 & (length(new) <= 2)) {
+            tmp2$name[ii] <- new[1]
+            tmp2$school1[ii] <- new[2]
+      } else if (length(new) == 3) {
+            tmp2$name[ii] <- new[1]
+            tmp2$school1[ii] <- new[2]
+            tmp2$unknown[ii] <- new[3]
+      }
+      
 }
 
 # if all three columns of tmp2 is not na, paste them
@@ -162,37 +162,91 @@ tmp2$name[rowSums(!is.na(tmp2)) == 3] <- paste(tmp2$name[rowSums(!is.na(tmp2)) =
 tmp2[rowSums(!is.na(tmp2)) == 3,c('school1','unknown')] <- NA
 #tmp2$unknown[rowSums(!is.na(tmp2)) == 3] <- NA
 
-tmp3 <- tmp2[,1:2]
+tmp3 <- tmp2[, 1:2]
 tmp3$len <- stringr::str_length(tmp3$name)
-tmp4 <- tmp3[tmp3$len>12,]
-tmp4$name <- strsplit(tmp4$name,'??')[[1]][1]
-tmp4$name <-
-summary(tmp3$len)
+tmp4 <- tmp3[tmp3$len > 12, ]
+tmp4$name <- strsplit(tmp4$name, '??')[[1]][1]
+tmp4$name <- summary(tmp3$len)
 a <- df.raw$name[1]
 new <- c()
 a_tmp <- strsplit(a,' ')[[1]]
-for (i in 1:length(a_tmp)){
-        if(stringr::str_length(a_tmp[i])>0){
-                print('>0')
-                new = c(new,a_tmp[i])
-        }
-        
-        print(c("length:", length(new)))
+for (i in 1:length(a_tmp)) {
+      if (stringr::str_length(a_tmp[i]) > 0) {
+            print('>0')
+            new = c(new, a_tmp[i])
+      }
+      
+      print(c("length:", length(new)))
 }
 new
 
 
-for (ii in 1:length(tmp)){
-        #a <- wk[tmp[ii]]
-        if (length(a) == 1){
-                tmp2$name[ii] <- a[1]
-        }else if (length(a) == 2){
-                tmp2$school1[ii] <- a[2]
-        }else if (length(a) >=3){
-                tmp2$school1[ii] <- a[2]
-                print(paste('the third string is:', a[3]))
-                
-        }
-        
+for (ii in 1:length(tmp)) {
+      #a <- wk[tmp[ii]]
+      if (length(a) == 1) {
+            tmp2$name[ii] <- a[1]
+      } else if (length(a) == 2) {
+            tmp2$school1[ii] <- a[2]
+      } else if (length(a) >= 3) {
+            tmp2$school1[ii] <- a[2]
+            print(paste('the third string is:', a[3]))
+            
+      }
+      
 }
 
+
+tmp <- with(df.l,table(name))
+repeatedName <- data.frame(count = tmp[tmp >2])
+df.l$name[which(nchar(df.l$name, type = "chars") == 19)] # " jiao   ming    hui"
+df.l$name[which(nchar(df.l$name, type = "chars") == 17)] # "tian   zhi  xiang"
+df.l$name[which(nchar(df.l$name, type = "chars") == 16)] # "huahgzhdhjuyhjfd" "wang  su    meng"
+df.l$name[which(nchar(df.l$name, type = "chars") == 15)] # "            王紫漩" "....3.........." 
+df.l$name[which(nchar(df.l$name, type = "chars") == 14)] # "陈思航。Jack Smith" "0zhangmengting"  
+df.l$name[which(nchar(df.l$name, type = "chars") == 13)] 
+# "yang  rui  xi"  "徐子玥  成都市 康河小学" "李文俊   成都市康河小学" "钟启伟   成都市康河小学"
+# "马丹丹   成都市康河小学" "sunweixiangvb" 
+df.l$name[which(nchar(df.l$name, type = "chars") == 12)] 
+df.l$name[which(nchar(df.l$name, type = "chars") == 11)] 
+
+schlName1 <- data.frame(with(df.l,table(school)))
+#write.csv(schlName1, 'UniqueSchoolName.csv',row.names = F)
+write.table(schlName1, 'UniqueSchoolName_1_raw.csv',quote = FALSE, sep = ',',row.names = F)
+schlName2 <- data.frame(with(df.l,table(school_A)))
+write.table(schlName2, 'Unique_School_A_Name_1_raw.csv',quote = FALSE, sep = ',',row.names = F)
+#write.csv(schlName2, 'Unique_School_A_Name.csv',row.names = F)
+
+# read the file with school ID
+# read the coded file
+
+UniqueSchoolName <- read.csv('UniqueSchoolName.csv', header = T,encoding = "UTF-8", stringsAsFactors=FALSE)
+Unique_School_A_Name <- read.csv('Unique_School_A_Name.csv', header = T,encoding = "UTF-8", stringsAsFactors=FALSE)
+
+Sys.setlocale(category = "LC_ALL", locale = "chs") #cht for traditional Chinese, etc.
+# extract the useful columns
+UniqueSchoolName <- UniqueSchoolName[,1:5]
+# rename the columns
+colnames(UniqueSchoolName) <- c("School","Freq","SchoolID","City","CityID")
+colnames(Unique_School_A_Name) <- c("School","Freq","SchoolID","City","CityID")
+# clear the strings by extracting the characters between " "
+UniqueSchoolName$SchoolNew <- gsub(".*[\"]([^.]+)[\"].*", "\\1", UniqueSchoolName$School)
+Unique_School_A_Name$SchoolNew <- gsub(".*[\"]([^.]+)[\"].*", "\\1", Unique_School_A_Name$School)
+
+# Match the School name and asign the school ID
+df.l$schoolID <-UniqueSchoolName[match(df.l$school, UniqueSchoolName$SchoolNew),3]
+df.l$schoolID[is.na(df.l$schoolID)] <- Unique_School_A_Name[match(df.l$school_A[is.na(df.l$schoolID)], Unique_School_A_Name$SchoolNew),3]
+
+# Get the unasigned school name
+UniqueSchoolName2 <- data.frame(with(df.l[is.na(df.l$schoolID),],table(school)))
+write.table(UniqueSchoolName2, 'UniqueSchoolName2.csv',quote = FALSE, sep = ',',row.names = F)
+Unique_School_A_Name2 <- data.frame(with(df.l[is.na(df.l$schoolID),],table(school_A)))
+write.table(Unique_School_A_Name2, 'Unique_School_A_Name2.csv',quote = FALSE, sep = ',',row.names = F)
+
+# 2nd run
+UniqueSchoolName2 <- read.csv('UniqueSchoolName2_coded.csv', sep = ',',header = T,encoding = "UTF-8", stringsAsFactors=FALSE)
+colnames(UniqueSchoolName2) <- c("School","Freq","SchoolID","City","CityID")
+df.l$schoolID[is.na(df.l$schoolID)] <- UniqueSchoolName2[match(df.l$school_A[is.na(df.l$schoolID)], UniqueSchoolName2$School),3]
+
+Unique_School_A_Name2 <- read.csv('Unique_School_A_Name2_coded.csv', sep = ',',header = T,encoding = "UTF-8", stringsAsFactors=FALSE)
+colnames(UniqueSchoolName2) <- c("School","Freq","SchoolID","City","CityID")
+df.l$schoolID[is.na(df.l$schoolID)] <- UniqueSchoolName2[match(df.l$school_A[is.na(df.l$schoolID)], UniqueSchoolName2$School),3]
