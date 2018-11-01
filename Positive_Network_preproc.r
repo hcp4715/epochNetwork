@@ -1,8 +1,8 @@
-
 ##############################################################################
-################## R code for Network of Positive Tratis #####################
+###                                                                        ###
+###                R code for Network of Positive Tratis                   ###
+###                                                                        ###
 ##############################################################################
-#
 # Author   Date(Y-M-D)  Log of change
 # =======  ===========  ==============
 # hcp      18.10.05     revised code based on Bellet et al 2018.
@@ -12,17 +12,19 @@
 ##### Part 1: read the .sav file ##########
 
 # remove previous variables in memory
+rm(list = ls())     # remove all variables
+curWD <- dirname(rstudioapi::getSourceEditorContext()$path) #Get the directory ofcurrent script
+setwd(curWD)
+
 Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jre7') # for 64-bit version
 Sys.setlocale("LC_ALL", "English")  # set local encoding to English
 Sys.setenv(LANG = "en") # set the feedback language to English
 
-rm(list = setdiff(ls(), lsf.str())) # remove all variables except functions
-
 # load libraries
 library(tidyverse)
 library(haven)
-library('bootnet')
-library('qgraph')
+library(bootnet)
+library(qgraph)
 
 if (!require(networktools)) {install.packages("networktools",repos = "http://cran.us.r-project.org"); require(networktools)}
 library("networktools")
@@ -40,93 +42,25 @@ source('Bellet_Supplemental_Script_S2.R')
 
 # load the reduced dataset
 df.s <- haven::read_spss("EPOCHreducedForR2.sav")  #  the short version data
-df.l <- haven::read_spss("EPOCHcombinedB.sav")     #  the long version data
+df.l <- haven::read_spss("EPOCHcombinedB 10.18.sav")     #  the long version data
 
 ###### estimate network model for short version ####
 df.s <- df.s[,1:50]    # remove the summary score
 
 # the colnames for test at T1
-t1name <- c("E1.1", "E2.1", "E3.1", "E4.1",
-            "P1.1", "P2.1", "P3.1", "P4.1", 
-            "O1.1", "O2.1", "O3.1", "O4.1",
-            "C1.1", "C2.1", "C3.1", "C4.1",
-            "H1.1", "H2.1", "H3.1", "H4.1")
+epochName <- c(c(paste("E",1:4, sep="")),c(paste("P",1:4,sep = '')),
+            c(paste("O",1:4,sep = '')),c(paste("C",1:4,sep = '')),c(paste("H",1:4,sep = '')))
 
-# the colnames for test at T2
-t2name <- c("E1.2", "E2.2", "E3.2", "E4.2",
-            "P1.2", "P2.2", "P3.2", "P4.2", 
-            "O1.2", "O2.2", "O3.2", "O4.2",
-            "C1.2", "C2.2", "C3.2", "C4.2",
-            "H1.2", "H2.2", "H3.2", "H4.2")
+resilName <- c(c(paste('res',1:7,sep = '')))
 
-epochName <- c("E-forgetTime", "E-focus",   "E-flow",      "E-learn",
+epochItems <- c("E-forgetTime", "E-focus",   "E-flow",      "E-learn",
                "P-beginEnd",   "P-finish",  "P-plan",      "P-hardwork",
                "O-futur",      "O-best",    "O-goodthing", "O-solution",
                "C-share",      "C-support", "C-caring",    "C-friends",
                "H-happy",      "H-fun",     "H-life",      "H-joy")
 
-# reliability of two test
-alpha.t1 <- psych::alpha(df.s[,t1name]) 
-print(alpha.t1$total)  # 0.936
-
-alpha.t2 <- psych::alpha(df.s[,t2name]) 
-print(alpha.t2$total)  # 0.935
-
-# estimate the network for Time point 1
-cor.epochNet.t1 <- invisible(qgraph::cor_auto(df.s[,t1name]))
-glasso_epochNet.t1 <- qgraph::EBICglasso(cor.epochNet.t1, n=dim(df.s[,t1name])[1], gamma=0.5)
-
-epochNet.t1 <- qgraph::qgraph(glasso_epochNet.t1, layout="spring", labels=epochName, vsize=9,
-                label.cex = c(rep(.7,10),.6,.7,.6),
-                label.font = c(rep(1,20)),
-                label.color = c(rep('blue', 4),rep('red',4),rep(1,4),rep('#993300',4),rep("#009999",4)),
-                label.scale = F, DoNotPlot=F)
-
-pdf("epochNet.t1.pdf", width = 3.8, height = 4)
-epochbw <- makeBW(epochNet.t1)
-dev.off()
-
-# estimate the network for Time point 2
-cor.epochNet.t2 <- invisible(qgraph::cor_auto(df.s[,t2name]))
-glasso_epochNet.t2 <- qgraph::EBICglasso(cor.epochNet.t2, n=dim(df.s[,t2name])[1], gamma=0.5)
-
-epochNet.t2 <- qgraph::qgraph(glasso_epochNet.t2, layout="spring", labels=epochName, vsize=9,
-                               label.cex = c(rep(.7,10),.6,.7,.6),
-                              label.font = c(rep(1,20)),
-                              label.color = c(rep('blue', 4),rep('red',4),rep(1,4),rep('#993300',4),rep("#009999",4)),
-                              label.scale = F, DoNotPlot=F)
-
-pdf("epochNet.t2.pdf", width = 3.8, height = 4)
-epochbw <- makeBW(epochNet.t1)
-dev.off()
-
-# expected influence
-EI_epoch.t1 <- networktools::expectedInf(glasso_epochNet.t1)
-pdf("epoch.t1_EI.pdf", width = 5)
-plot(EI_epoch.t1$step1, order="value", zscore=F, yaxt = "n")
-dev.off()
-
-####Edge Weight and EI stability
-set.seed(123)
-net <- bootnet::estimateNetwork(df.s[,t1name], default="EBICglasso")
-
-net_boot <- bootnet_flex(net, statistics=c("edge", "expectedInf"), nBoots=1000, type="case", caseN = 50)
-
-CorStabEpochT1 <- corStability(net_boot, statistics=c("edge", "expectedInf")) # correlation stability of the bootnet
-
-
-epochNet.t1 <- df.s[,t1name] %>%
-      estimateNetwork(default = "EBICglasso")
-
-plot(epochNet.t1,layout = 'spring',labels = TRUE)
-centralityPlot(epochNet.t1)
-
-epochNet.t2 <- estimateNetwork(df[,t2name],default = "EBICglasso")
-plot(epochNet.t2,layout = 'spring',labels = TRUE)
-centralityPlot(epochNet.t2)
-
 # clean the name variable, may need new code:
-tmp <- df.raw$name %>%
+tmp <- df.l$name %>%
         as.character()
 tmp2 <- setNames(data.frame(matrix(ncol = 3, nrow = length(tmp) )), c("name", "school1",'unknown'))        
 
@@ -216,25 +150,43 @@ schlName2 <- data.frame(with(df.l,table(school_A)))
 write.table(schlName2, 'Unique_School_A_Name_1_raw.csv',quote = FALSE, sep = ',',row.names = F)
 #write.csv(schlName2, 'Unique_School_A_Name.csv',row.names = F)
 
+
+### restart to clean the data
+### Basic information:
+### dataset of cleaned data 
+###  dataset ID: 249  810 1340 1410 1854 2293 2325 3588 4543 4843 5111 
+### sample size: 234  778 1340 1279 1737 2129 1664 2271 2607 1322 2493
+
+### dataset of uncleaned data:
+###  dataset ID: 249  810 1340 1410 1854 2293 2325 3588 4543 4843 5111 
+### sample size: 234  778 1340 1291 1762 2161 1716 3038 3826 4338 4321
+
+### This means: dataset 249, 810 and 1340 are clean
+
+### recode the school ID
 # read the file with school ID
 # read the coded file
-
-UniqueSchoolName <- read.csv('UniqueSchoolName.csv', header = T,encoding = "UTF-8", stringsAsFactors=FALSE)
-Unique_School_A_Name <- read.csv('Unique_School_A_Name.csv', header = T,encoding = "UTF-8", stringsAsFactors=FALSE)
-
 Sys.setlocale(category = "LC_ALL", locale = "chs") #cht for traditional Chinese, etc.
 # extract the useful columns
-UniqueSchoolName <- UniqueSchoolName[,1:5]
+library(xlsx)
+UniSchName  <- read.xlsx2('UniqueSchoolName1101.xlsx', 'UniqueSchoolName', header = T,stringsAsFactors=FALSE)
+UniSchAName <- read.xlsx2('Unique_School_A_Name1101.xlsx', 'Unique_School_A_Name', header = T,stringsAsFactors=FALSE)
+#UniSchName  <- read.csv('UniqueSchoolName1101.csv', sep = ',',header = T,encoding = "UTF-8", stringsAsFactors=FALSE)
+#UniSchAName <- read.csv('Unique_School_A_Name1101.csv', sep = ',', quote = "",header = T,encoding = "UTF-8", stringsAsFactors=FALSE)
+
+#UniqueSchoolName <- UniqueSchoolName[,1:5]
 # rename the columns
-colnames(UniqueSchoolName) <- c("School","Freq","SchoolID","City","CityID")
-colnames(Unique_School_A_Name) <- c("School","Freq","SchoolID","City","CityID")
+#colnames(UniqueSchoolName) <- c("School","Freq","SchoolID","City","CityID")
+#colnames(Unique_School_A_Name) <- c("School","Freq","SchoolID","City","CityID")
 # clear the strings by extracting the characters between " "
-UniqueSchoolName$SchoolNew <- gsub(".*[\"]([^.]+)[\"].*", "\\1", UniqueSchoolName$School)
-Unique_School_A_Name$SchoolNew <- gsub(".*[\"]([^.]+)[\"].*", "\\1", Unique_School_A_Name$School)
+#UniqueSchoolName$SchoolNew <- gsub(".*[\"]([^.]+)[\"].*", "\\1", UniqueSchoolName$School)
+#Unique_School_A_Name$SchoolNew <- gsub(".*[\"]([^.]+)[\"].*", "\\1", Unique_School_A_Name$School)
 
 # Match the School name and asign the school ID
-df.l$schoolID <-UniqueSchoolName[match(df.l$school, UniqueSchoolName$SchoolNew),3]
-df.l$schoolID[is.na(df.l$schoolID)] <- Unique_School_A_Name[match(df.l$school_A[is.na(df.l$schoolID)], Unique_School_A_Name$SchoolNew),3]
+# df.l$schoolID <- UniSchName[match(df.l$school, UniSchName$school),3]
+#df.l$schoolID <- as.character(df.l$schoolID)
+df.l$schoolID[is.na(df.l$schoolID)] <- 
+      UniSchAName[match(df.l$school_A[is.na(df.l$schoolID)], UniSchAName$school),3]
 
 # Get the unasigned school name
 UniqueSchoolName2 <- data.frame(with(df.l[is.na(df.l$schoolID),],table(school)))
@@ -250,3 +202,10 @@ df.l$schoolID[is.na(df.l$schoolID)] <- UniqueSchoolName2[match(df.l$school_A[is.
 Unique_School_A_Name2 <- read.csv('Unique_School_A_Name2_coded.csv', sep = ',',header = T,encoding = "UTF-8", stringsAsFactors=FALSE)
 colnames(UniqueSchoolName2) <- c("School","Freq","SchoolID","City","CityID")
 df.l$schoolID[is.na(df.l$schoolID)] <- UniqueSchoolName2[match(df.l$school_A[is.na(df.l$schoolID)], UniqueSchoolName2$School),3]
+
+### temporarily forget the problem
+resilName <- c("res1","res3","res5", "res2_reverse", "res4_reverse","res6_reverse")
+df.1 <- subset(df.l, set %in% c(249,810,1340))
+resScale <- df.1 %>%
+      select(epochName,resilName) #%>%
+      #complete.cases()

@@ -1,0 +1,17 @@
+Bellet*
+*.csv
+*.xlsx
+*.txt
+*.doc
+*.sav
+*.por
+*.rar
+*.zip
+*.eps
+*.pdf
+*.png
+*.RData
+*.Rhistory
+*.Rproj.user/
+*.Rproj
+.Rproj.user

@@ -30,7 +30,6 @@
 # ---------------------------------------------------------------------------------------
 
 rm(list = ls())     # remove all variables
-
 curWD <- dirname(rstudioapi::getSourceEditorContext()$path) #Get the directory ofcurrent script
 setwd(curWD)
 
