@@ -92,7 +92,7 @@ df1_r <- data %>%                              # 1st measurement with re-test
 df2 <- data %>%                                # re-test
       dplyr::select(c(t1name,t2name)) %>%
       dplyr::filter(complete.cases(data)) %>%
-      dplyr::select(t1name)
+      dplyr::select(t2name)
 
 # ---------------------------------------------------------------------------------------
 # ---------- 3. Estimate networks individually ------------------------------------------
@@ -138,7 +138,7 @@ pred2   <- predict(fit2, na.omit(df2))
 # The average node predictability(the proportion of explained variance("R2"))
 mean(pred1_all$error$R2) # .48725
 mean(pred1_r$error$R2)   # .4968
-mean(pred2$error$R2)     # .49675
+mean(pred2$error$R2)     # .48775
 
 ### Plot networks
 # network of all data
@@ -210,8 +210,8 @@ for (i in 1:100) {
       comm_memb[i,] <- spinglass$membership
 }
 
-summary(as.vector(matrix_spinglass))      # min = 5; median = 5, mean = 5.09; max = 7
-hist(as.vector(matrix_spinglass))         # view the distribution of the # of communities
+summary(as.vector(max_comm))      # min = 5; median = 5, mean = 5.09; max = 7
+hist(as.vector(max_comm))         # view the distribution of the # of communities
 
 set.seed(100)
 sgc <- igraph::spinglass.community(g_all) # 5 communities identified
@@ -225,11 +225,11 @@ library("EGA")
 ega <- EGA::EGA(df1_all, plot.EGA = TRUE)
 ega$wc  #3 4 3 3 4 4 4 4 1 2 2 2 2 2 2 2 1 1 1 1
 
-# walktrap algorithm for community (random walk approach)
-glasso.ebic   <- qgraph::EBICglasso(S=df1_all_corr, n = nrow(df1_all)) #build a graph object for the algorithm
-graph.glasso  <- igraph::as.igraph(qgraph(glasso.ebic, layout = "spring", vsize = 3))
-walktrap_comm <- igraph::walktrap.community(graph.glasso) #shows the membership of an item to a community
-walktrap_comm$membership
+# walktrap algorithm for community (random walk approach, same as EGA,not presented)
+#glasso.ebic   <- qgraph::EBICglasso(S=df1_all_corr, n = nrow(df1_all)) #build a graph object for the algorithm
+#graph.glasso  <- igraph::as.igraph(qgraph(glasso.ebic, layout = "spring", vsize = 3))
+#walktrap_comm <- igraph::walktrap.community(graph.glasso) #shows the membership of an item to a community
+#walktrap_comm$membership
 
 ## plot two approach of communities and save as "Fig_S1_comm.pdf"
 group.spinglass<- list(c(1,3,4), c(2,5:8), c(9,17:20), c(10:12), c(13:16))
@@ -247,7 +247,7 @@ graph_sg <- qgraph(df1_all_corr, graph="glasso", layout="spring", sampleSize = n
 dev.off()
 
 ### Centrality
-#Fig.2 Davis Network centrality plot, in the Supplementary Materials
+
 All_cp <- centralityPlot(network1_all_G) #using the graph from the data
 pdf("Figure_S3_centrality_all.pdf", width=10, height=7) 
 All_cp 
@@ -293,15 +293,15 @@ boot2a <- bootnet::bootnet(network2, nBoots = 1000, nCores = 8)
 boot2b <- bootnet::bootnet(network2, nBoots = 1000, type = "case",  nCores = 8)
 
 ### Plot edge weight CI
-pdf("Fig2_edge_weight_ci.pdf")
-plot(boot1a, labels = FALSE, order = "sample") 
-plot(boot2a, labels = FALSE, order = "sample") 
+pdf("FigS4_edge_weight_ci.pdf")
+plot(boot1a, labels = FALSE, order = "sample")   # all data
+# plot(boot2a, labels = FALSE, order = "sample") # replication data
 dev.off()
 
 ### Plot centrality stability
-pdf("FigS3_centrality_stablity.pdf") 
+pdf("FigS5_centrality_stablity.pdf") 
 plot(boot1b)
-plot(boot2b)
+#plot(boot2b)
 dev.off()
 
 ### Centrality stability coefficient
@@ -317,42 +317,58 @@ cs
 sink()
 
 ### Edge weights diff test
-pdf("Fig4_Edge_weight_diff.pdf")
+pdf("FigS6_Edge_weight_diff.pdf")
 plot(boot1a, "edge", plot = "difference", onlyNonZero = TRUE, order = "sample")
-plot(boot2a, "edge", plot = "difference", onlyNonZero = TRUE, order = "sample")
+#plot(boot2a, "edge", plot = "difference", onlyNonZero = TRUE, order = "sample")
 dev.off()
 
 ### Centrality diff test
-pdf("Fig5_centrality_diff.pdf")
+pdf("FigS7_centrality_diff.pdf")
 plot(boot1a, "strength", order="sample", labels=FALSE) 
 plot(boot2a, "strength", order="sample", labels=FALSE) 
 dev.off()
 
-### Conclusion: 
-# all networks have CS coefficients for node strength > 0.5; looks good!
+### Conclusion: all networks have CS coefficients for node strength > 0.5; looks good!
 
-### test- retest network comparison
+### Save output
+save(boot1a, file = "boot1a.Rdata")
+save(boot1b, file = "boot1b.Rdata")
+save(boot2a, file = "boot2a.Rdata")
+save(boot2b, file = "boot2b.Rdata")
+
+##### test- retest network comparison
+#####
 dft1_c1  <- cor(df1_r)
 dft1_c1b <- qgraph::cor_auto(df1_r)
 cor(dft1_c1[lower.tri(dft1_c1)], dft1_c1b[lower.tri(dft1_c1b)], 	method="spearman") #0.9936
 
 dft2_c1  <- cor(df2)
 dft2_c1b <- qgraph::cor_auto(df2)
-cor(dft2_c1[lower.tri(dft2_c1)], dft2_c1b[lower.tri(dft2_c1b)], 	method="spearman") #0.9936
+cor(dft2_c1[lower.tri(dft2_c1)], dft2_c1b[lower.tri(dft2_c1b)], 	method="spearman") #0.99164
 
 # since they are very similar, we can probably use the NetworkComparisonTest::NCT() 
 # that is only validated for Pearson, not poylchoric correlations
 
 ### NCT topology
+# the colnames for test at T2
+t3name <- c("E1", "E2", "E3", "E4",
+            "P1", "P2", "P3", "P4", 
+            "O1", "O2", "O3", "O4",
+            "C1", "C2", "C3", "C4",
+            "H1", "H2", "H3", "H4")
+colnames(df1_r) <- colnames(df2) <- t3name  # re-name the column name of these two data set
 set.seed(100)
-compare_12 <- NetworkComparisonTest::NCT(df1_r,df2, it=5000, binary.data=FALSE, test.edges=TRUE, edges='all', progressbar=TRUE)
+compare_12 <- NetworkComparisonTest::NCT(df1_r,df2, it=5000, binary.data=FALSE, 
+                                         test.edges=TRUE, edges='all', progressbar=TRUE)
 
-compare_12$nwinv.pval     # output p-value: 1
+compare_12$nwinv.pval     # output p-value: 0.0526
 
 ### quantification of differences: count significantly different edges (total number )
-sum(compare_12$einv.pvals$"p-value" < 0.05) # 0 of all
+sum(compare_12$einv.pvals$"p-value" < 0.05) # 1 of 190, < 0.5%
 
 ### NCT global strength
-compare_12$glstrinv.pval  # 1
+compare_12$glstrinv.pval  # 0.01
 
-### the network are similar
+save(compare_12, file = "compare_test-retest.Rdata")
+
+### end ###
