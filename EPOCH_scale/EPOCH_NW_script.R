@@ -158,7 +158,8 @@ network1_all_G <- plot(network1_all,
 #qgraph(graph1)
 dev.off()
 
-pdf("Fig_S1_retest_T1_T2.pdf", width= 16, height= 9)
+### plot figure S1, graph of test and re-test graph
+pdf("Fig_S1_retest_T1_T2.pdf", width= 24, height= 9)
 par(mfrow=c(1,2))
 network1_r_G <- plot(network1_r,
                      title="Re-test data T1", 
@@ -190,67 +191,15 @@ save(network1_all, network1_r, network2, file="networks_3_sep.RData")
 # save(fit1,pred1,fit2,pred2,fit3,pred3,fit4,pred4, file="mgm.Rdata")
 
 # ---------------------------------------------------------------------------------------
-# ---------- 4. Community and centrality of the estimated networks ----------------------
+# ---------- 4. Centrality of the estimated networks ------------------------------------
 # ---------------------------------------------------------------------------------------
-
-# (1) used the Eigenvalue
-# eigenvalue plot
-plot(eigen(df1_all_corr)$values, type="b")
-abline(h=1,col="red", lty = 3)
-
-# (2) Using spinglass algorithm to get the community informtion
-# run the spinglass algorithm 100 times to get a mean of communities, max and min values
-g_all <- igraph::as.igraph(network1_all_G, attributes=TRUE)
-
-max_comm  <- matrix(NA, nrow=1,ncol=100)   # create a empty matrix 
-comm_memb <- matrix(NA, nrow=100,ncol=20)  # create a empty matrix for storing the membership
-for (i in 1:100) {
-      set.seed(i)
-      spinglass <- igraph::spinglass.community(g_all)
-      max_comm[1,i] <- max(spinglass$membership)
-      comm_memb[i,] <- spinglass$membership
-}
-
-summary(as.vector(max_comm))      # min = 5; median = 5, mean = 5.09; max = 7
-hist(as.vector(max_comm))         # view the distribution of the # of communities
-
-set.seed(100)
-sgc <- igraph::spinglass.community(g_all) # 5 communities identified
-sgc$membership                            # shows the membership of an item to a community
-# 4 5 4 4 5 5 5 5 3 1 1 1 2 2 2 2 3 3 3 3
-
-# (3) using EGA package to detect the community (if not installed, use following two lines of code)
-# library("devtools")
-# devtools::install_github('hfgolino/EGA')
-library("EGA")
-ega <- EGA::EGA(df1_all, plot.EGA = TRUE)
-ega$wc  #3 4 3 3 4 4 4 4 1 2 2 2 2 2 2 2 1 1 1 1
-
-# walktrap algorithm for community (random walk approach, same as EGA,not presented)
-#glasso.ebic   <- qgraph::EBICglasso(S=df1_all_corr, n = nrow(df1_all)) #build a graph object for the algorithm
-#graph.glasso  <- igraph::as.igraph(qgraph(glasso.ebic, layout = "spring", vsize = 3))
-#walktrap_comm <- igraph::walktrap.community(graph.glasso) #shows the membership of an item to a community
-#walktrap_comm$membership
-
-## plot two approach of communities and save as "Fig_S1_comm.pdf"
-group.spinglass<- list(c(1,3,4), c(2,5:8), c(9,17:20), c(10:12), c(13:16))
-group.ega      <- list(c(1,3,4), c(2,5:8), c(9,17:20), c(10:16))
-pdf("Fig_S2_comm.pdf", width= 16, height= 9)
-par(mfrow=c(2,2))
-par(mfrow = c(1, 2))
-graph_ega <- qgraph(df1_all_corr, graph="glasso", layout="spring", sampleSize = nrow(data),groups=group.spinglass, 
-                    vsize=7, cut=0, maximum=.45, border.width=1.5,
-                    color=c("red", "green", "blue", "orange","white"), title="igraph spinglass")
-
-graph_sg <- qgraph(df1_all_corr, graph="glasso", layout="spring", sampleSize = nrow(data),groups=group.ega, 
-                 vsize=7, cut=0, maximum=.45, border.width=1.5,
-                 color=c("red", "green", "blue", "orange"), title="ega walktrap")
-dev.off()
 
 ### Centrality
 
 All_cp <- centralityPlot(network1_all_G) #using the graph from the data
-pdf("Figure_S3_centrality_all.pdf", width=10, height=7) 
+
+### plot figure s2: all centrality measures;
+pdf("Figure_S2_centrality_all.pdf", width=10, height=7) 
 All_cp 
 dev.off()
 
@@ -263,12 +212,13 @@ cor(graph1.c$InDegree, graph1.c$Betweenness) # 0.646
 cor(graph1.c$InDegree, graph1.c$Closeness)   # 0.722
 cor(graph1.c$Closeness, graph1.c$Betweenness)# 0.5268 
 
+# transfom the node strength data
 cent <- as.data.frame(scale(centrality(network1_all_G)$InDegree))
 cent <- dplyr::mutate(cent, id = rownames(cent))
 colnames(cent) <- c("1", "EPOCH_Item")
 cent_long <- reshape2::melt(cent, id="EPOCH_Item")
 
-# plot Figure 2. 
+# plot Figure 2: the node strength as . 
 strengthplot <- ggplot2::ggplot(data=cent_long, aes(x=EPOCH_Item, y=value, group=1)) +
       geom_line() +
       geom_point(shape = 21, fill = "white", size = 1.5, stroke = 1) +
@@ -293,19 +243,26 @@ boot1a <- bootnet::bootnet(network1_all, nBoots = 1000, nCores = 8)
 # centrality stability for the whole network
 boot1b <- bootnet::bootnet(network1_all, nBoots = 1000, type = "case",  nCores = 8)
 
-# edge weight accuracy for the whole network
-boot2a <- bootnet::bootnet(network2, nBoots = 1000, nCores = 8)
+# edge weight accuracy for the re-test network 
+#boot2a <- bootnet::bootnet(network2, nBoots = 1000, nCores = 8)
 
-# centrality stability for the whole network
-boot2b <- bootnet::bootnet(network2, nBoots = 1000, type = "case",  nCores = 8)
+# centrality stability for the re-test network
+#boot2b <- bootnet::bootnet(network2, nBoots = 1000, type = "case",  nCores = 8)
 
-### Plot edge weight CI
-pdf("FigS4_edge_weight_ci.pdf")
+### Plot edge weight CI as Figure S3
+pdf("FigS3_edge_weight_ci.pdf")
 plot(boot1a, labels = FALSE, order = "sample")   # all data
 # plot(boot2a, labels = FALSE, order = "sample") # replication data
 dev.off()
 
-### Plot centrality stability
+### Edge weights diff test, plotted as Figure S4
+pdf("FigS4_Edge_weight_diff.pdf")
+plot(boot1a, "edge", plot = "difference", onlyNonZero = TRUE, order = "sample")
+#plot(boot2a, "edge", plot = "difference", onlyNonZero = TRUE, order = "sample")
+dev.off()
+
+
+### Plot centrality stability, as Figure S5
 pdf("FigS5_centrality_stablity.pdf") 
 plot(boot1b)
 #plot(boot2b)
@@ -313,26 +270,22 @@ dev.off()
 
 ### Centrality stability coefficient (CS-coefficient)
 cs1 <- bootnet::corStability(boot1b)  
-cs2 <- bootnet::corStability(boot2b) 
-cs <- matrix(NA,2,3)
+# cs2 <- bootnet::corStability(boot2b) # re-test network
+cs <- matrix(NA,1,3)
 cs[1,1:3] <- round(cs1, digits=2)
-cs[2,1:3] <- round(cs2, digits=2)
+# cs[2,1:3] <- round(cs2, digits=2)
 colnames(cs) <- c("Betweenness", "Closeness", "Strength")
-rownames(cs) <- c("All_data_T1", "Rep_Data_T2")
+#rownames(cs) <- c("All_data_T1", "Rep_Data_T2")
+rownames(cs) <- c("All_data_T1")
 sink("TableS1.txt")
 cs
 sink()
 
-### Edge weights diff test
-pdf("FigS6_Edge_weight_diff.pdf")
-plot(boot1a, "edge", plot = "difference", onlyNonZero = TRUE, order = "sample")
-#plot(boot2a, "edge", plot = "difference", onlyNonZero = TRUE, order = "sample")
-dev.off()
 
-### Centrality diff test
-pdf("FigS7_centrality_diff.pdf")
+### Centrality diff test as figure S6
+pdf("FigS6_centrality_diff.pdf")
 plot(boot1a, "strength", order="sample", labels=FALSE) 
-plot(boot2a, "strength", order="sample", labels=FALSE) 
+#plot(boot2a, "strength", order="sample", labels=FALSE) 
 dev.off()
 
 ### Conclusion: all networks have CS coefficients for node strength > 0.5; looks good!
@@ -340,8 +293,8 @@ dev.off()
 ### Save output
 save(boot1a, file = "boot1a.Rdata")
 save(boot1b, file = "boot1b.Rdata")
-save(boot2a, file = "boot2a.Rdata")
-save(boot2b, file = "boot2b.Rdata")
+#save(boot2a, file = "boot2a.Rdata")
+#save(boot2b, file = "boot2b.Rdata")
 
 ##### test- retest network comparison
 #####
