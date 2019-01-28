@@ -49,10 +49,6 @@ library("mgm")        #
 if (!require(tidyverse)) {install.packages("tidyverse",repos = "http://cran.us.r-project.org"); require(tidyverse)}
 library("tidyverse")  # use tidyverse for data manipulation
 
-#library(stats)
-#library(data.table)
-
-
 # ---------------------------------------------------------------------------------------
 # ---------- 2. Load & manipulate data --------------------------------------------------
 # ---------------------------------------------------------------------------------------
@@ -139,6 +135,11 @@ pred2   <- predict(fit2, na.omit(df2))
 mean(pred1_all$error$R2) # .48725
 mean(pred1_r$error$R2)   # .4968
 mean(pred2$error$R2)     # .48775
+
+# the node predictability of the central items:
+pred1_all$errors$R2[20]  # H4 0.654
+pred1_all$errors$R2[2]   # E2 0.53
+pred1_all$errors$R2[12]  # O4 0.52
 
 ### Plot networks
 # network of all data
@@ -286,10 +287,16 @@ dev.off()
 # ---------------------------------------------------------------------------------------
 
 ### Estimate and save stability and accuracy
+# edge weight accuracy for the whole network
 boot1a <- bootnet::bootnet(network1_all, nBoots = 1000, nCores = 8)
+
+# centrality stability for the whole network
 boot1b <- bootnet::bootnet(network1_all, nBoots = 1000, type = "case",  nCores = 8)
 
+# edge weight accuracy for the whole network
 boot2a <- bootnet::bootnet(network2, nBoots = 1000, nCores = 8)
+
+# centrality stability for the whole network
 boot2b <- bootnet::bootnet(network2, nBoots = 1000, type = "case",  nCores = 8)
 
 ### Plot edge weight CI
@@ -304,7 +311,7 @@ plot(boot1b)
 #plot(boot2b)
 dev.off()
 
-### Centrality stability coefficient
+### Centrality stability coefficient (CS-coefficient)
 cs1 <- bootnet::corStability(boot1b)  
 cs2 <- bootnet::corStability(boot2b) 
 cs <- matrix(NA,2,3)

@@ -31,7 +31,7 @@ library("networktools")
 if (!require(xlsx)) {install.packages("xlsx",repos = "http://cran.us.r-project.org"); require(networktools)}
 library("xlsx")
 
-source('Bellet_Supplemental_Script_S2.R')
+#source('Bellet_Supplemental_Script_S2.R')
 
 #spss2date <- function(x) as.Date(x/86400, origin = "1582-10-14")
 #df.raw <- foreign::read.spss("EPOCHcombinedB.sav", reencode='utf-8',to.data.frame=TRUE)
@@ -41,17 +41,169 @@ source('Bellet_Supplemental_Script_S2.R')
 #summary(df.raw)
 
 # load the reduced dataset
-df.s <- haven::read_spss("EPOCHreducedForR2.sav")  #  the short version data
+#df.s <- haven::read_spss("EPOCHreducedForR2.sav")  #  the short version data
 df.l <- haven::read_spss("EPOCHcombinedB 10.18.sav")     #  the long version data
 
 ###### estimate network model for short version ####
-df.s <- df.s[,1:50]    # remove the summary score
+# df.s <- df.s[,1:50]    # remove the summary score
 
-# the colnames for test at T1
+# the colnames scales
 epochName <- c(c(paste("E",1:4, sep="")),c(paste("P",1:4,sep = '')),
             c(paste("O",1:4,sep = '')),c(paste("C",1:4,sep = '')),c(paste("H",1:4,sep = '')))
 
-resilName <- c(c(paste('res',1:7,sep = '')))
+# names for deppression
+depresName <- c(paste("D",1:5,sep = ''))
+
+# names for anxiety
+anxName <- c(paste("A",1:5,sep = ''))
+
+# names for health
+healthName <- c(paste("Health",1:5,sep = ''))
+
+# names for intro
+introName <- c(paste("intro",1:5,sep = ''))
+
+# names for exter
+exterName <- c(paste("exter",1:5,sep = ''))
+
+# names for Ident
+IdentName <- c(paste("Ident",1:5,sep = ''))
+
+# names for resilience
+resNames <- df.l %>% 
+  dplyr:: select(starts_with("res")) %>% colnames()
+resName <- resName1[c(1:6)]
+
+## data with all 6 item
+df.res2 <- df.l %>%
+  dplyr::filter(!is.na(res1) & 
+                  !is.na(res2) &
+                  !is.na(res3) &
+                  !is.na(res4) &
+                  !is.na(res5) &
+                  !is.na(res6)) %>%            # eliminate the columns without resilience data
+  dplyr::select_if(~sum(!is.na(.)) > 0) %>%  # eliminate columns that only have NAs
+  dplyr::select(-c(epochE,epochP,epochO,epochC,epochH,epochAll,resilience))
+
+df.res2 %>% 
+  select_if(function(x) any(is.na(x))) %>% 
+  summarise_each(funs(sum(is.na(.)))) -> extra_NA
+
+df.res2_2 <- df.res2 %>%
+  dplyr::filter(!is.na(age)) %>%             # has age info
+  dplyr::select_if(~sum(!is.na(.)) > 0) %>%  # no all NA
+  dplyr::filter(!(age <0 | age > 20)) %>%       # bizard age
+  dplyr::select(-c(name,set,surveyDate,birthday,grade,gradeS,class,classS,major,major_A,school,
+                   Schoolname, schooltype,provinces, date,id810,object,object_A,
+                   depress,anxiety,Health,res2,res4,res6,
+                   Intro, Ident,Integ,Exter,
+                   GM2,GM4,GM6,GM8,GM))
+corrplot::corrplot(cor(df.res2_2[,-c(1:4)]))
+network1 <- bootnet::estimateNetwork(df.res2_2[,-c(1:4)],default = "EBICglasso")
+
+plot(network1,
+     #title="Resilience", 
+     maximum=.47,
+     #labels = TRUE,
+     #nodeNames = resName1,
+     #pie = pred1_all$error$R2,
+     layout = 'spring')
+
+summary(df.res2_2)
+
+## data with all 4 item
+df.res1 <- df.l %>%
+  dplyr::filter(!is.na(res1) & 
+                  !is.na(res2) &
+                  !is.na(res3) &
+                  !is.na(res4)) %>%            # eliminate the columns without resilience data
+  dplyr::select_if(~sum(!is.na(.)) > 0) %>%  # eliminate columns that only have NAs
+  dplyr::select(-c(epochE,epochP,epochO,epochC,epochH,epochAll,resilience))
+
+
+df.res <- df.res2[,resName] %>%
+  dplyr::mutate(res2_r = 6 - res2,
+                  res4_r = 6 - res4,
+                  res6_r = 6 - res6) %>%
+  dplyr::select(res1,res2_r,res3,res4_r,res5,res6_r)
+str(df.res)
+summary(df.res)
+psych::omega(df.res)
+head(df.res)
+corrplot::corrplot(cor(df.res))
+df.res_corr <- qgraph::cor_auto(df.res)
+
+network1_res <- bootnet::estimateNetwork(df.res,default = "EBICglasso")
+
+plot(network1_res,
+     title="Resilience", 
+     maximum=.47,
+     labels = TRUE,
+     nodeNames = resName1,
+     #pie = pred1_all$error$R2,
+     layout = 'spring',
+     #groups = gr,
+     #color = c("#d7191c", "#fdae61", "#abd9e9", "#2c7bb6"),
+     #color = c("#d7191c", "#fdae61", "#abd9e9", "#2c7bb6", "#aa00ff"),
+     legend.cex = .35,
+     border.width=2, border.color='#555555')       # max=0.47
+
+# names for GM
+GMName <- c(paste("GM",1:8,sep = ''))
+
+# names for FR
+FRName <- c(paste("FR",1:18,sep = ''))
+
+# names for MR
+MRName <- c(paste("MR",1:18,sep = ''))
+
+# names scheng
+colnames(df.l)[colnames(df.l) == 'SchEng1'] <- 'scheng1'
+colnames(df.l)[colnames(df.l) == 'schEng5'] <- 'scheng5'
+schengName <- c(paste("scheng",1:5,sep = ''))
+
+# names for cope
+copeName <- c(paste("cope",1:5,sep = ''))
+
+# names for emp
+empName <- c(paste("emp",1:3,sep = ''))
+
+# names for SelAwar
+selAwarName <- c(paste("SelAwar",1:5,sep = ''))
+
+# names for belong
+belongName <- c(paste("belong",1:4sep = ''))
+
+# names for Grit
+gritName <- c(paste("Grit",1:3,sep = ''))
+
+# names for seficy
+seficyName <- c(paste("seficy",1:10,sep = ''))
+
+# names for MAP (??)
+MAPName <- c(paste("MAP",1:4,sep = ''))
+PAPName <- c(paste("PAP",1:4,sep = ''))
+MAVName <- c(paste("MAV",1:4,sep = ''))
+PAVOName <- c(paste("PAVO",1:3,sep = ''))
+
+# names for Belongm
+BelongmName <- c(paste("Belongm",1:4,sep = ''))
+
+# names for Belongc
+BelongcName <- c(paste("Belongc",1:4,sep = ''))
+
+# names for Belongt
+BelongtName <- c(paste("Belongt",1:4,sep = ''))
+
+# names for Belongfri
+BelongfriName <- c(paste("Belongfri",1:4,sep = ''))
+
+# names for interperson
+interpersonName <- c(paste("interperson",1:5,sep = ''))
+
+# other names
+relName <- c('schpf','TeaRel','ClaRel','ParRel','initiation','NegAss','exposure','ES','InterSk')
+
 
 epochItems <- c("E-forgetTime", "E-focus",   "E-flow",      "E-learn",
                "P-beginEnd",   "P-finish",  "P-plan",      "P-hardwork",
