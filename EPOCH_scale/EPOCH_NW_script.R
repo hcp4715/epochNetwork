@@ -324,10 +324,13 @@ compare_12 <- NetworkComparisonTest::NCT(df1_r,df2, it=5000, binary.data=FALSE,
 compare_12$nwinv.pval     # output p-value: 0.0526
 
 ### quantification of differences: count significantly different edges (total number )
-sum(compare_12$einv.pvals$"p-value" < 0.05) # 1 of 190, < 0.5%
+sum(compare_12$einv.pvals$"p-value" < 0.05) # 21 of 190, < 0.5%
 
 ### NCT global strength
 compare_12$glstrinv.pval  # 0.01
+
+plot(compare_12, what= "network")
+plot(compare_12, what= "strength")
 
 save(compare_12, file = "compare_test-retest.Rdata")
 
