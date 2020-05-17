@@ -3,6 +3,7 @@
 ###                 Network Analysis of the Chinese version of EPOCH                 ###
 ###                  Zeng, Guang; Peng, Kaiping; Hu, Chuan-Peng                      ### 
 ###               Email = hcp4715@gmail.com       twitter= @hcp4715                  ###
+###      see: Zeng, G., Peng, K., & Hu, C.-P. (2019).doi:10.3389/fpsyg.2019.02783    ###
 ###                                                                                  ###
 ########################################################################################
 
