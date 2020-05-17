@@ -1,8 +1,10 @@
 Bellet*
 *.csv
 *.xlsx
+*.xls
 *.txt
 *.doc
+*.docx
 *.sav
 *.por
 *.rar
@@ -15,3 +17,4 @@ Bellet*
 *.Rproj.user/
 *.Rproj
 .Rproj.user
+*Elevation/
